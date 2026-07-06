@@ -11,3 +11,13 @@ create table if not exists public.classes (
   created_at timestamptz not null default now(),
   unique (grade, section, academic_year)
 );
+
+create table if not exists public.students (
+  id uuid primary key default gen_random_uuid(),
+  class_id uuid not null references public.classes (id) on delete cascade,
+  student_number smallint not null check (student_number between 1 and 9999),
+  first_name text not null check (length(trim(first_name)) > 0),
+  last_name text not null check (length(trim(last_name)) > 0),
+  created_at timestamptz not null default now(),
+  unique (class_id, student_number)
+);

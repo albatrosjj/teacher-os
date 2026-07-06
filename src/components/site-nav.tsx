@@ -3,7 +3,7 @@ import Link from "next/link";
 const navItems = [
   { label: "Classes", href: "/classes" },
   // Not yet implemented — enabled as their routes ship.
-  { label: "Students", href: null },
+  { label: "Students", href: "/students" },
   { label: "Exams", href: null },
   { label: "Analytics", href: null },
 ] as const;
