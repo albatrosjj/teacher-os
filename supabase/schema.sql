@@ -21,3 +21,15 @@ create table if not exists public.students (
   created_at timestamptz not null default now(),
   unique (class_id, student_number)
 );
+
+create table if not exists public.performance_notes (
+  id uuid primary key default gen_random_uuid(),
+  student_id uuid not null references public.students (id) on delete cascade,
+  note text not null check (length(trim(note)) > 0),
+  rating smallint check (rating between 1 and 5),
+  noted_on date not null default current_date,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists performance_notes_student_idx
+  on public.performance_notes (student_id, noted_on desc);
