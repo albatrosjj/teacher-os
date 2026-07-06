@@ -7,7 +7,7 @@ import { getSupabaseEnv } from "./env";
  * `createBrowserClient` returns a singleton, so calling this per component is safe.
  */
 export function createClient() {
-  const { url, anonKey } = getSupabaseEnv();
+  const { url, publishableKey } = getSupabaseEnv();
 
-  return createBrowserClient(url, anonKey);
+  return createBrowserClient(url, publishableKey);
 }
