@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import type { Class } from "@/features/classes/types";
 import { ClassRoster } from "@/features/students/class-roster";
+import { ImportStudentsDialog } from "@/features/students/import-students-dialog";
 import { NewStudentDialog } from "@/features/students/new-student-dialog";
 import type { Student } from "@/features/students/types";
 import { createClient } from "@/lib/supabase/server";
@@ -47,7 +48,10 @@ export default async function StudentsPage() {
     <div className="mx-auto w-full max-w-5xl px-6 py-10">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Students</h1>
-        <NewStudentDialog classes={classes} />
+        <div className="flex items-center gap-2">
+          <ImportStudentsDialog classes={classes} />
+          <NewStudentDialog classes={classes} />
+        </div>
       </div>
       {rosters.length === 0 ? (
         <p className="text-muted-foreground py-16 text-center">

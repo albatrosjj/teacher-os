@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
 
+import { MAX_IMPORT_ROWS, type ImportedStudent } from "./import";
 import type { ActionResult } from "./types";
 import { validateStudentInput } from "./validation";
 
@@ -44,4 +45,81 @@ export async function createStudent(
 
   revalidatePath("/students");
   return { status: "success" };
+}
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function importStudents(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const classId = String(formData.get("classId") ?? "");
+  if (!UUID_PATTERN.test(classId)) {
+    return { status: "error", message: "Please select a class." };
+  }
+
+  let students: ImportedStudent[];
+  try {
+    students = JSON.parse(String(formData.get("students") ?? "[]"));
+  } catch {
+    return { status: "error", message: "The imported data was unreadable." };
+  }
+
+  const valid =
+    Array.isArray(students) &&
+    students.length > 0 &&
+    students.length <= MAX_IMPORT_ROWS &&
+    students.every(
+      (s) =>
+        Number.isInteger(s.studentNumber) &&
+        s.studentNumber >= 1 &&
+        s.studentNumber <= 9999 &&
+        typeof s.firstName === "string" &&
+        s.firstName.trim().length > 0 &&
+        typeof s.lastName === "string" &&
+        s.lastName.trim().length > 0,
+    );
+  if (!valid) {
+    return {
+      status: "error",
+      message: `Nothing to import — check the file contents (max ${MAX_IMPORT_ROWS} students).`,
+    };
+  }
+
+  const supabase = await createClient();
+
+  // ignoreDuplicates skips numbers already taken in the class instead of failing the batch.
+  const { data, error } = await supabase
+    .from("students")
+    .upsert(
+      students.map((s) => ({
+        class_id: classId,
+        student_number: s.studentNumber,
+        first_name: s.firstName.trim(),
+        last_name: s.lastName.trim(),
+      })),
+      { onConflict: "class_id,student_number", ignoreDuplicates: true },
+    )
+    .select("id");
+
+  if (error) {
+    console.error("Failed to import students:", error);
+    return {
+      status: "error",
+      message: "Something went wrong while importing. Please try again.",
+    };
+  }
+
+  const inserted = data?.length ?? 0;
+  const duplicates = students.length - inserted;
+
+  revalidatePath("/students");
+  return {
+    status: "success",
+    message:
+      duplicates > 0
+        ? `Imported ${inserted} students; ${duplicates} skipped (number already taken in this class).`
+        : `Imported ${inserted} students.`,
+  };
 }
