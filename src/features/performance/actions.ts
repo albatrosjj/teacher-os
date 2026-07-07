@@ -38,6 +38,59 @@ export async function createPerformanceNote(
   return { status: "success" };
 }
 
+export async function updatePerformanceNote(
+  noteId: string,
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  if (!UUID_PATTERN.test(noteId)) {
+    return { status: "error", message: "Missing note." };
+  }
+  const validation = validatePerformanceNoteInput(formData);
+  if (!validation.ok) {
+    return { status: "error", message: validation.message };
+  }
+
+  const { studentId, note, rating, notedOn } = validation.data;
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("performance_notes")
+    .update({ note, rating, noted_on: notedOn })
+    .eq("id", noteId);
+
+  if (error) {
+    console.error("Failed to update performance note:", error);
+    return {
+      status: "error",
+      message: "Something went wrong while saving the note. Please try again.",
+    };
+  }
+
+  revalidatePath(`/students/${studentId}`);
+  revalidatePath("/performance");
+  return { status: "success" };
+}
+
+export async function deletePerformanceNote(
+  noteId: string,
+): Promise<ActionResult> {
+  if (!UUID_PATTERN.test(noteId)) {
+    return { status: "error", message: "Missing note." };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("performance_notes")
+    .delete()
+    .eq("id", noteId);
+  if (error) {
+    console.error("Failed to delete performance note:", error);
+    return { status: "error", message: "Failed to delete the note." };
+  }
+  revalidatePath("/performance");
+  return { status: "success" };
+}
+
 /**
  * Saves a note captured by voice: resolves the spoken student number within
  * the class, then records the note dated today.

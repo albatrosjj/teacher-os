@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { DeleteButton } from "@/components/delete-button";
+import { deleteExam } from "@/features/exams/actions";
 import {
   Card,
   CardContent,
@@ -31,7 +33,7 @@ export default async function ExamPage({
 
   const { data: exam, error: examError } = (await supabase
     .from("exams")
-    .select("id, class_id, title, exam_date, questions, created_at")
+    .select("id, class_id, title, subject, exam_date, questions, created_at")
     .eq("id", examId)
     .maybeSingle()) as { data: Exam | null; error: unknown };
 
@@ -70,12 +72,25 @@ export default async function ExamPage({
 
   return (
     <div className="mx-auto grid w-full max-w-4xl gap-8 px-6 py-10">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{exam.title}</h1>
-        <p className="text-muted-foreground mt-2 text-sm">
-          {exam.exam_date} · {exam.questions.length} questions · {maxTotal}{" "}
-          points · {results.length}/{students.length} papers graded
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{exam.title}</h1>
+          <p className="text-muted-foreground mt-2 text-sm">
+            {exam.subject ? `${exam.subject} · ` : ""}
+            {exam.exam_date} · {exam.questions.length} questions · {maxTotal}{" "}
+            points · {results.length}/{students.length} papers graded
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <Button asChild variant="outline" size="sm">
+            <a href={`/exams/${exam.id}/edit`}>Edit</a>
+          </Button>
+          <DeleteButton
+            action={deleteExam.bind(null, exam.id)}
+            confirmText="Delete this exam and all its results?"
+            redirectTo="/exams"
+          />
+        </div>
       </div>
 
       <Card>

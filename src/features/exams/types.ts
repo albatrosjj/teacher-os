@@ -3,12 +3,15 @@ export interface ExamQuestion {
   question: string;
   answer_key: string;
   max_points: number;
+  /** Learning outcome (kazanım) this question measures. */
+  outcome?: string;
 }
 
 export interface Exam {
   id: string;
   class_id: string;
   title: string;
+  subject: string | null;
   exam_date: string;
   questions: ExamQuestion[];
   created_at: string;

@@ -24,7 +24,7 @@ export default async function ExamsPage() {
     supabase.from("classes").select("id, name"),
     supabase
       .from("exams")
-      .select("id, class_id, title, exam_date, questions, created_at")
+      .select("id, class_id, title, subject, exam_date, questions, created_at")
       .order("exam_date", { ascending: false }),
   ]);
 
@@ -64,7 +64,8 @@ export default async function ExamsPage() {
                 <CardHeader>
                   <CardTitle>{exam.title}</CardTitle>
                   <CardDescription>
-                    {classNames.get(exam.class_id) ?? "Unknown class"} ·{" "}
+                    {classNames.get(exam.class_id) ?? "Unknown class"}
+                    {exam.subject ? ` · ${exam.subject}` : ""} ·{" "}
                     {exam.exam_date} · {exam.questions.length} question
                     {exam.questions.length === 1 ? "" : "s"}
                   </CardDescription>

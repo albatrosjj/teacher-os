@@ -38,8 +38,9 @@ create table if not exists public.exams (
   id uuid primary key default gen_random_uuid(),
   class_id uuid not null references public.classes (id) on delete cascade,
   title text not null check (length(trim(title)) > 0),
+  subject text,
   exam_date date not null default current_date,
-  -- [{"no": 1, "question": "...", "answer_key": "...", "max_points": 10}, ...]
+  -- [{"no": 1, "question": "...", "answer_key": "...", "max_points": 10, "outcome": "..."}, ...]
   questions jsonb not null,
   created_at timestamptz not null default now()
 );

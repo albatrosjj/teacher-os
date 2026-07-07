@@ -50,6 +50,70 @@ export async function createStudent(
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+export async function updateStudent(
+  studentId: string,
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  if (!UUID_PATTERN.test(studentId)) {
+    return { status: "error", message: "Missing student." };
+  }
+  const validation = validateStudentInput(formData);
+  if (!validation.ok) {
+    return { status: "error", message: validation.message };
+  }
+
+  const { classId, studentNumber, firstName, lastName } = validation.data;
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("students")
+    .update({
+      class_id: classId,
+      student_number: studentNumber,
+      first_name: firstName,
+      last_name: lastName,
+    })
+    .eq("id", studentId);
+
+  if (error) {
+    if (error.code === "23505") {
+      return {
+        status: "error",
+        message: `Number ${studentNumber} is already taken in this class.`,
+      };
+    }
+    console.error("Failed to update student:", error);
+    return {
+      status: "error",
+      message:
+        "Something went wrong while saving the student. Please try again.",
+    };
+  }
+
+  revalidatePath("/students");
+  revalidatePath(`/students/${studentId}`);
+  return { status: "success" };
+}
+
+/** Deletes the student along with their notes and exam results (cascade). */
+export async function deleteStudent(studentId: string): Promise<ActionResult> {
+  if (!UUID_PATTERN.test(studentId)) {
+    return { status: "error", message: "Missing student." };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("students")
+    .delete()
+    .eq("id", studentId);
+  if (error) {
+    console.error("Failed to delete student:", error);
+    return { status: "error", message: "Failed to delete the student." };
+  }
+  revalidatePath("/students");
+  return { status: "success" };
+}
+
 export async function importStudents(
   _prevState: ActionResult,
   formData: FormData,

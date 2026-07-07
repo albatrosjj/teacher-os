@@ -3,6 +3,7 @@ import type { ExamQuestion } from "./types";
 export interface ExamInput {
   classId: string;
   title: string;
+  subject: string;
   examDate: string;
   questions: ExamQuestion[];
 }
@@ -23,6 +24,7 @@ export const MAX_QUESTIONS = 30;
 export function validateExamInput(formData: FormData): ValidationResult {
   const classId = String(formData.get("classId") ?? "");
   const title = String(formData.get("title") ?? "").trim();
+  const subject = String(formData.get("subject") ?? "").trim();
   const examDate = String(formData.get("examDate") ?? "").trim();
 
   if (!UUID_PATTERN.test(classId)) {
@@ -30,6 +32,9 @@ export function validateExamInput(formData: FormData): ValidationResult {
   }
   if (!title || title.length > 200) {
     return { ok: false, message: "Please enter a title (max 200 characters)." };
+  }
+  if (!subject || subject.length > 100) {
+    return { ok: false, message: "Please enter a subject (max 100 characters)." };
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(examDate) || isNaN(Date.parse(examDate))) {
     return { ok: false, message: "Please pick a valid date." };
@@ -54,6 +59,7 @@ export function validateExamInput(formData: FormData): ValidationResult {
         typeof q.question === "string" &&
         typeof q.answer_key === "string" &&
         q.answer_key.trim().length > 0 &&
+        (q.outcome === undefined || typeof q.outcome === "string") &&
         Number.isFinite(q.max_points) &&
         q.max_points > 0 &&
         q.max_points <= 100,
@@ -70,7 +76,8 @@ export function validateExamInput(formData: FormData): ValidationResult {
     question: q.question.trim(),
     answer_key: q.answer_key.trim(),
     max_points: q.max_points,
+    outcome: q.outcome?.trim() || undefined,
   }));
 
-  return { ok: true, data: { classId, title, examDate, questions } };
+  return { ok: true, data: { classId, title, subject, examDate, questions } };
 }

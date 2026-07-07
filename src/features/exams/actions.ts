@@ -21,12 +21,13 @@ export async function createExam(
     return { status: "error", message: validation.message };
   }
 
-  const { classId, title, examDate, questions } = validation.data;
+  const { classId, title, subject, examDate, questions } = validation.data;
   const supabase = await createClient();
 
   const { error } = await supabase.from("exams").insert({
     class_id: classId,
     title,
+    subject,
     exam_date: examDate,
     questions,
   });
@@ -39,6 +40,61 @@ export async function createExam(
     };
   }
 
+  revalidatePath("/exams");
+  return { status: "success" };
+}
+
+export async function updateExam(
+  examId: string,
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  if (!UUID_PATTERN.test(examId)) {
+    return { status: "error", message: "Missing exam." };
+  }
+  const validation = validateExamInput(formData);
+  if (!validation.ok) {
+    return { status: "error", message: validation.message };
+  }
+
+  const { classId, title, subject, examDate, questions } = validation.data;
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("exams")
+    .update({
+      class_id: classId,
+      title,
+      subject,
+      exam_date: examDate,
+      questions,
+    })
+    .eq("id", examId);
+
+  if (error) {
+    console.error("Failed to update exam:", error);
+    return {
+      status: "error",
+      message: "Something went wrong while saving the exam. Please try again.",
+    };
+  }
+
+  revalidatePath("/exams");
+  revalidatePath(`/exams/${examId}`);
+  return { status: "success" };
+}
+
+/** Deletes the exam and all its results (cascade). */
+export async function deleteExam(examId: string): Promise<ActionResult> {
+  if (!UUID_PATTERN.test(examId)) {
+    return { status: "error", message: "Missing exam." };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.from("exams").delete().eq("id", examId);
+  if (error) {
+    console.error("Failed to delete exam:", error);
+    return { status: "error", message: "Failed to delete the exam." };
+  }
   revalidatePath("/exams");
   return { status: "success" };
 }

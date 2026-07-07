@@ -16,8 +16,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { Class } from "@/features/classes/types";
 
-import { createExam } from "./actions";
-import type { ActionResult } from "./types";
+import { createExam, updateExam } from "./actions";
+import type { ActionResult, Exam } from "./types";
 import { MAX_QUESTIONS } from "./validation";
 
 const initialState: ActionResult = { status: "idle" };
@@ -30,24 +30,43 @@ interface QuestionDraft {
   question: string;
   answer_key: string;
   max_points: string;
+  outcome: string;
 }
 
 const emptyQuestion: QuestionDraft = {
   question: "",
   answer_key: "",
   max_points: "10",
+  outcome: "",
 };
 
-export function NewExamForm({ classes }: { classes: Class[] }) {
+export function ExamForm({
+  classes,
+  exam,
+}: {
+  classes: Class[];
+  /** When set, the form edits this exam instead of creating a new one. */
+  exam?: Exam;
+}) {
   const router = useRouter();
-  const [state, formAction, pending] = useActionState(createExam, initialState);
-  const [questions, setQuestions] = useState<QuestionDraft[]>([emptyQuestion]);
+  const action = exam ? updateExam.bind(null, exam.id) : createExam;
+  const [state, formAction, pending] = useActionState(action, initialState);
+  const [questions, setQuestions] = useState<QuestionDraft[]>(
+    exam
+      ? exam.questions.map((q) => ({
+          question: q.question,
+          answer_key: q.answer_key,
+          max_points: String(q.max_points),
+          outcome: q.outcome ?? "",
+        }))
+      : [emptyQuestion],
+  );
 
   useEffect(() => {
     if (state.status === "success") {
-      router.push("/exams");
+      router.push(exam ? `/exams/${exam.id}` : "/exams");
     }
-  }, [state, router]);
+  }, [state, router, exam]);
 
   function updateQuestion(index: number, patch: Partial<QuestionDraft>) {
     setQuestions((prev) =>
@@ -61,6 +80,7 @@ export function NewExamForm({ classes }: { classes: Class[] }) {
       question: q.question,
       answer_key: q.answer_key,
       max_points: Number(q.max_points),
+      outcome: q.outcome.trim() || undefined,
     })),
   );
 
@@ -72,10 +92,10 @@ export function NewExamForm({ classes }: { classes: Class[] }) {
   return (
     <form action={formAction} className="grid gap-6">
       <input type="hidden" name="questions" value={questionsJson} />
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2">
           <Label htmlFor="classId">Class</Label>
-          <Select name="classId" required>
+          <Select name="classId" defaultValue={exam?.class_id} required>
             <SelectTrigger id="classId" className="w-full">
               <SelectValue placeholder="Select a class" />
             </SelectTrigger>
@@ -89,11 +109,23 @@ export function NewExamForm({ classes }: { classes: Class[] }) {
           </Select>
         </div>
         <div className="grid gap-2">
+          <Label htmlFor="subject">Subject</Label>
+          <Input
+            id="subject"
+            name="subject"
+            maxLength={100}
+            defaultValue={exam?.subject ?? ""}
+            placeholder="e.g. Matematik"
+            required
+          />
+        </div>
+        <div className="grid gap-2">
           <Label htmlFor="title">Title</Label>
           <Input
             id="title"
             name="title"
             maxLength={200}
+            defaultValue={exam?.title}
             placeholder="e.g. 1st Term Written Exam"
             required
           />
@@ -104,7 +136,7 @@ export function NewExamForm({ classes }: { classes: Class[] }) {
             id="examDate"
             name="examDate"
             type="date"
-            defaultValue={today()}
+            defaultValue={exam?.exam_date ?? today()}
             required
           />
         </div>
@@ -112,7 +144,10 @@ export function NewExamForm({ classes }: { classes: Class[] }) {
 
       <div className="grid gap-4">
         {questions.map((q, index) => (
-          <fieldset key={index} className="border-border grid gap-3 rounded-lg border p-4">
+          <fieldset
+            key={index}
+            className="border-border grid gap-3 rounded-lg border p-4"
+          >
             <div className="flex items-center justify-between">
               <legend className="text-sm font-semibold">
                 Question {index + 1}
@@ -136,7 +171,9 @@ export function NewExamForm({ classes }: { classes: Class[] }) {
                 id={`q-${index}-text`}
                 rows={2}
                 value={q.question}
-                onChange={(e) => updateQuestion(index, { question: e.target.value })}
+                onChange={(e) =>
+                  updateQuestion(index, { question: e.target.value })
+                }
                 placeholder="The question as written on the paper"
               />
             </div>
@@ -169,6 +206,17 @@ export function NewExamForm({ classes }: { classes: Class[] }) {
                 />
               </div>
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor={`q-${index}-outcome`}>Learning outcome (kazanım)</Label>
+              <Input
+                id={`q-${index}-outcome`}
+                value={q.outcome}
+                onChange={(e) =>
+                  updateQuestion(index, { outcome: e.target.value })
+                }
+                placeholder="e.g. Kesirlerle toplama işlemi yapar"
+              />
+            </div>
           </fieldset>
         ))}
       </div>
@@ -194,7 +242,7 @@ export function NewExamForm({ classes }: { classes: Class[] }) {
       )}
       <div>
         <Button type="submit" disabled={pending}>
-          {pending ? "Saving…" : "Create exam"}
+          {pending ? "Saving…" : exam ? "Save changes" : "Create exam"}
         </Button>
       </div>
     </form>

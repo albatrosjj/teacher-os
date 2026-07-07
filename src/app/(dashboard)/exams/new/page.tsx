@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import type { Class } from "@/features/classes/types";
-import { NewExamForm } from "@/features/exams/new-exam-form";
+import { ExamForm } from "@/features/exams/exam-form";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -38,7 +38,7 @@ export default async function NewExamPage() {
           No classes yet. Create a class first.
         </p>
       ) : (
-        <NewExamForm classes={classes} />
+        <ExamForm classes={classes} />
       )}
     </div>
   );

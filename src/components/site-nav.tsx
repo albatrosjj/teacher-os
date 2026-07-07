@@ -2,11 +2,11 @@ import Link from "next/link";
 
 const navItems = [
   { label: "Classes", href: "/classes" },
-  // Not yet implemented — enabled as their routes ship.
   { label: "Students", href: "/students" },
-  { label: "Voice Note", href: "/voice" },
   { label: "Exams", href: "/exams" },
-  { label: "Analytics", href: null },
+  { label: "Performance", href: "/performance" },
+  { label: "Reports", href: "/reports" },
+  { label: "Voice Note", href: "/voice" },
 ] as const;
 
 export function SiteNav() {
@@ -19,21 +19,12 @@ export function SiteNav() {
         <ul className="flex items-center gap-4 text-sm">
           {navItems.map((item) => (
             <li key={item.label}>
-              {item.href ? (
-                <Link
-                  href={item.href}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {item.label}
-                </Link>
-              ) : (
-                <span
-                  className="text-muted-foreground/50 cursor-default"
-                  title="Coming soon"
-                >
-                  {item.label}
-                </span>
-              )}
+              <Link
+                href={item.href}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {item.label}
+              </Link>
             </li>
           ))}
         </ul>
