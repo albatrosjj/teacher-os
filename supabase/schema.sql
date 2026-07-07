@@ -33,3 +33,28 @@ create table if not exists public.performance_notes (
 
 create index if not exists performance_notes_student_idx
   on public.performance_notes (student_id, noted_on desc);
+
+create table if not exists public.exams (
+  id uuid primary key default gen_random_uuid(),
+  class_id uuid not null references public.classes (id) on delete cascade,
+  title text not null check (length(trim(title)) > 0),
+  exam_date date not null default current_date,
+  -- [{"no": 1, "question": "...", "answer_key": "...", "max_points": 10}, ...]
+  questions jsonb not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.exam_results (
+  id uuid primary key default gen_random_uuid(),
+  exam_id uuid not null references public.exams (id) on delete cascade,
+  student_id uuid not null references public.students (id) on delete cascade,
+  -- [{"no": 1, "student_answer": "...", "score": 8, "rationale": "..."}, ...]
+  scores jsonb not null,
+  total_score numeric not null,
+  overall_feedback text,
+  created_at timestamptz not null default now(),
+  unique (exam_id, student_id)
+);
+
+create index if not exists exam_results_exam_idx
+  on public.exam_results (exam_id);
