@@ -52,9 +52,23 @@ create table if not exists public.exam_results (
   scores jsonb not null,
   total_score numeric not null,
   overall_feedback text,
+  -- Scanned page references, kept ~24h for the annotated PDF, then cleared:
+  -- [{"page": 1, "path": "<examId>/<studentId>-p1.jpg"}, ...]
+  pages jsonb,
   created_at timestamptz not null default now(),
   unique (exam_id, student_id)
 );
 
 create index if not exists exam_results_exam_idx
   on public.exam_results (exam_id);
+
+-- Storage for scanned exam papers (auto-deleted after 24h by /api/cleanup).
+insert into storage.buckets (id, name, public)
+values ('exam-papers', 'exam-papers', false)
+on conflict (id) do nothing;
+
+drop policy if exists "exam papers full access" on storage.objects;
+create policy "exam papers full access" on storage.objects
+  for all
+  using (bucket_id = 'exam-papers')
+  with check (bucket_id = 'exam-papers');

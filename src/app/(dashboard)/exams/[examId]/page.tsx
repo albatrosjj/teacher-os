@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -49,7 +50,7 @@ export default async function ExamPage({
     supabase
       .from("exam_results")
       .select(
-        "id, exam_id, student_id, scores, total_score, overall_feedback, created_at",
+        "id, exam_id, student_id, scores, total_score, overall_feedback, pages, created_at",
       )
       .eq("exam_id", examId),
   ]);
@@ -94,7 +95,22 @@ export default async function ExamPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Results</CardTitle>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle>Results</CardTitle>
+            {results.some((r) => r.pages?.length) && (
+              <Button asChild variant="outline" size="sm">
+                <a href={`/exams/${exam.id}/annotated`} download>
+                  Download marked PDF
+                </a>
+              </Button>
+            )}
+          </div>
+          {results.some((r) => r.pages?.length) && (
+            <CardDescription>
+              The PDF shows each paper with scores written in red. Scanned
+              photos are kept for 24 hours, then deleted automatically.
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent>
           {results.length === 0 ? (

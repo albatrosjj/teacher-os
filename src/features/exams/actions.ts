@@ -163,6 +163,21 @@ export async function gradeScannedPaper(
   }));
   const totalScore = scores.reduce((sum, s) => sum + s.score, 0);
 
+  // Keep the scanned pages for 24h so the annotated class PDF can be built.
+  // A daily cleanup job deletes them from storage afterwards.
+  const pages: { page: number; path: string }[] = [];
+  for (let i = 0; i < photos.length; i++) {
+    const path = `${examId}/${student.id}-p${i + 1}.jpg`;
+    const { error: uploadError } = await supabase.storage
+      .from("exam-papers")
+      .upload(path, photos[i], { contentType: photos[i].type, upsert: true });
+    if (uploadError) {
+      console.error("Failed to store scanned page:", uploadError);
+      break; // grading still succeeds; the PDF just skips this paper
+    }
+    pages.push({ page: i + 1, path });
+  }
+
   const { error } = await supabase.from("exam_results").upsert(
     {
       exam_id: examId,
@@ -170,6 +185,7 @@ export async function gradeScannedPaper(
       scores,
       total_score: totalScore,
       overall_feedback: grading.overall_feedback,
+      pages: pages.length === photos.length ? pages : null,
     },
     { onConflict: "exam_id,student_id" },
   );

@@ -20,6 +20,24 @@ const GradingSchema = z.object({
       student_answer: z.string(),
       score: z.number(),
       rationale: z.string(),
+      position: z
+        .object({
+          page: z
+            .number()
+            .describe("Cevabın bulunduğu görsel: 1 = ön yüz, 2 = arka yüz."),
+          x: z
+            .number()
+            .describe(
+              "Puanın yazılacağı noktanın yatay konumu, 0 (sol) - 1 (sağ) arası. Cevabın hemen sağındaki boşluğu seç.",
+            ),
+          y: z
+            .number()
+            .describe(
+              "Puanın yazılacağı noktanın dikey konumu, 0 (üst) - 1 (alt) arası.",
+            ),
+        })
+        .nullable()
+        .describe("Cevap kâğıtta bulunamadıysa null."),
     }),
   ),
   overall_feedback: z.string(),
