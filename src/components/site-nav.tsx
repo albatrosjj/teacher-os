@@ -4,6 +4,7 @@ const navItems = [
   { label: "Classes", href: "/classes" },
   // Not yet implemented — enabled as their routes ship.
   { label: "Students", href: "/students" },
+  { label: "Voice Note", href: "/voice" },
   { label: "Exams", href: null },
   { label: "Analytics", href: null },
 ] as const;
