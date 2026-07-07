@@ -120,7 +120,9 @@ export function VoiceNoteRecorder({ classes }: { classes: Class[] }) {
     const recognition = new Ctor();
     recognition.lang = "tr-TR";
     recognition.interimResults = true;
-    recognition.continuous = true;
+    // Android Chrome re-emits every final result on each event when
+    // continuous is on, duplicating the transcript — disable it there.
+    recognition.continuous = !/Android/i.test(navigator.userAgent);
 
     finalTranscriptRef.current = "";
     erroredRef.current = false;
@@ -128,15 +130,22 @@ export function VoiceNoteRecorder({ classes }: { classes: Class[] }) {
     setStatus({ kind: "listening" });
 
     recognition.onresult = (event) => {
-      let finalText = "";
+      // Collect final segments, skipping repeats — some mobile browsers
+      // deliver the same final result several times.
+      const finals: string[] = [];
       let interim = "";
       for (let i = 0; i < event.results.length; i++) {
         const result = event.results[i];
-        if (result.isFinal) finalText += ` ${result[0].transcript}`;
-        else interim += ` ${result[0].transcript}`;
+        const text = result[0].transcript.trim();
+        if (!text) continue;
+        if (result.isFinal) {
+          if (finals[finals.length - 1] !== text) finals.push(text);
+        } else {
+          interim += ` ${text}`;
+        }
       }
-      finalTranscriptRef.current = finalText.trim();
-      setTranscript(`${finalText} ${interim}`.trim());
+      finalTranscriptRef.current = finals.join(" ");
+      setTranscript(`${finals.join(" ")} ${interim}`.trim());
     };
     recognition.onerror = (event) => {
       recognitionRef.current = null;
