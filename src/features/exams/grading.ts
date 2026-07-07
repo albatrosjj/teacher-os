@@ -5,6 +5,15 @@ import { z } from "zod";
 import type { ExamQuestion } from "./types";
 
 const GradingSchema = z.object({
+  student_number: z
+    .number()
+    .nullable()
+    .describe(
+      "Kâğıdın ön yüzünde yazan öğrenci numarası; listede eşleşen öğrencinin numarası. Bulunamazsa null.",
+    ),
+  student_name_on_paper: z
+    .string()
+    .describe("Kâğıtta okunan ad soyad, olduğu gibi. Okunamıyorsa boş bırak."),
   scores: z.array(
     z.object({
       no: z.number(),
@@ -33,15 +42,27 @@ export function isSupportedMediaType(
   return (SUPPORTED_MEDIA_TYPES as readonly string[]).includes(type);
 }
 
+export interface PaperImage {
+  base64: string;
+  mediaType: SupportedMediaType;
+}
+
+export interface RosterEntry {
+  student_number: number;
+  first_name: string;
+  last_name: string;
+}
+
 /**
- * Reads a photographed exam paper and grades each answer against the answer
- * key. Rationales and feedback come back in Turkish — the teacher-facing
- * language — regardless of the app's UI language.
+ * Reads a photographed exam paper (front side first, then back if present),
+ * identifies the student from the name/number written on the front, and
+ * grades each answer against the answer key. Output is in Turkish — the
+ * teacher-facing language — regardless of the app's UI language.
  */
 export async function gradeExamPaper(input: {
   questions: ExamQuestion[];
-  imageBase64: string;
-  mediaType: SupportedMediaType;
+  images: PaperImage[];
+  roster: RosterEntry[];
 }): Promise<GradingOutput> {
   const client = new Anthropic();
 
@@ -52,32 +73,44 @@ export async function gradeExamPaper(input: {
     )
     .join("\n\n");
 
+  const rosterText = input.roster
+    .map((s) => `${s.student_number} - ${s.first_name} ${s.last_name}`)
+    .join("\n");
+
   const response = await client.messages.parse({
     model: "claude-opus-4-8",
     max_tokens: 16000,
     thinking: { type: "adaptive" },
     system:
       "Sen deneyimli bir öğretmensin. Fotoğrafı çekilmiş klasik yazılı sınav " +
-      "kâğıtlarını okur ve cevap anahtarına göre puanlarsın. El yazısını " +
-      "dikkatle çöz. Her soru için öğrencinin cevabını kısaca özetle, cevap " +
-      "anahtarıyla karşılaştır ve 0 ile o sorunun tam puanı arasında bir puan " +
-      "ver; kısmi puan verebilirsin. Gerekçeni kısa ve net yaz. Cevap okunamıyor " +
-      "veya boşsa 0 ver ve bunu gerekçede belirt. Tüm çıktıyı Türkçe yaz.",
+      "kâğıtlarını okur ve cevap anahtarına göre puanlarsın. İlk görsel kâğıdın " +
+      "ön yüzü, varsa ikinci görsel arka yüzüdür. Önce ön yüzdeki ad soyad ve " +
+      "numaradan öğrenciyi sınıf listesinde bul (yazım küçük farklılıklarla " +
+      "eşleşebilir); emin olamazsan student_number alanını null bırak. Sonra " +
+      "el yazısını dikkatle çözerek her soru için öğrencinin cevabını kısaca " +
+      "özetle, cevap anahtarıyla karşılaştır ve 0 ile o sorunun tam puanı " +
+      "arasında bir puan ver; kısmi puan verebilirsin. Cevap okunamıyor veya " +
+      "boşsa 0 ver ve bunu gerekçede belirt. Tüm çıktıyı Türkçe yaz.",
     messages: [
       {
         role: "user",
         content: [
-          {
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: input.mediaType,
-              data: input.imageBase64,
-            },
-          },
+          ...input.images.map(
+            (img) =>
+              ({
+                type: "image",
+                source: {
+                  type: "base64",
+                  media_type: img.mediaType,
+                  data: img.base64,
+                },
+              }) as const,
+          ),
           {
             type: "text",
-            text: `Bu sınav kâğıdını aşağıdaki cevap anahtarına göre değerlendir:\n\n${answerKey}`,
+            text:
+              `Sınıf listesi (numara - ad soyad):\n${rosterText}\n\n` +
+              `Bu sınav kâğıdını aşağıdaki cevap anahtarına göre değerlendir:\n\n${answerKey}`,
           },
         ],
       },

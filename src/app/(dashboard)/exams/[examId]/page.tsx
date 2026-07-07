@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { GradeForm } from "@/features/exams/grade-form";
+import { ExamScanner } from "@/features/exams/exam-scanner";
 import type { Exam, ExamResult, QuestionScore } from "@/features/exams/types";
 import type { Student } from "@/features/students/types";
 import { createClient } from "@/lib/supabase/server";
@@ -79,15 +79,16 @@ export default async function ExamPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Grade a paper</CardTitle>
+          <CardTitle>Scan papers</CardTitle>
           <CardDescription>
-            Take a photo of the student&apos;s paper — the AI reads the
-            handwriting and scores it against the answer key. Review the
-            result below; re-grading a student replaces their previous result.
+            Scan each paper&apos;s front side, then its back side, and repeat
+            for the whole class. The front side must show the student&apos;s
+            name — the AI matches it to the roster automatically. When all
+            papers are scanned, tap &ldquo;Finish scanning&rdquo;.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <GradeForm examId={exam.id} students={students} />
+          <ExamScanner examId={exam.id} />
         </CardContent>
       </Card>
 
