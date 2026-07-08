@@ -71,9 +71,14 @@ export default async function PerformancePage({
     <div className="mx-auto w-full max-w-4xl px-6 py-10">
       <div className="mb-8 flex items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Performance</h1>
-        <Button asChild>
-          <Link href="/voice">🎙️ Voice note</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline">
+            <Link href="/performance/grades">Term grades</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/voice">🎙️ Voice note</Link>
+          </Button>
+        </div>
       </div>
 
       {classes.length === 0 ? (

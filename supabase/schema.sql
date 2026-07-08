@@ -63,6 +63,32 @@ create table if not exists public.exam_results (
 create index if not exists exam_results_exam_idx
   on public.exam_results (exam_id);
 
+create table if not exists public.rubrics (
+  id uuid primary key default gen_random_uuid(),
+  name text not null check (length(trim(name)) > 0),
+  -- [{"name": "Derse katılım", "weight": 30}, ...] — weights sum to 100
+  criteria jsonb not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.performance_grades (
+  id uuid primary key default gen_random_uuid(),
+  class_id uuid not null references public.classes (id) on delete cascade,
+  student_id uuid not null references public.students (id) on delete cascade,
+  rubric_id uuid references public.rubrics (id) on delete set null,
+  term text not null check (length(trim(term)) > 0),
+  -- [{"name": "...", "weight": 30, "score": 4, "rationale": "..."}, ...]
+  criteria_scores jsonb not null,
+  suggested_score numeric not null,
+  final_score numeric not null,
+  rationale text,
+  created_at timestamptz not null default now(),
+  unique (student_id, term)
+);
+
+create index if not exists performance_grades_class_idx
+  on public.performance_grades (class_id, term);
+
 -- Storage for scanned exam papers (auto-deleted after 24h by /api/cleanup).
 insert into storage.buckets (id, name, public)
 values ('exam-papers', 'exam-papers', false)
